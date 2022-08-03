@@ -3,7 +3,7 @@ kind: Component
 metadata:
   name: example-website-techdocs
   annotations:
-    backstage.io/techdocs-ref: dir:.
+    backstage.io/techdocs-ref: url:https://github.com/backstage/backstage/blob/master/OWNERS.md
 spec:
   type: website
   lifecycle: experimental
