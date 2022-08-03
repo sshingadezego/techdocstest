@@ -1,0 +1,113 @@
+---
+resources:
+- name: my-git-repo
+  type: git
+  source:
+    uri: https://github.com/ruanbekker/concourse-test
+    branch: basic-helloworld
+
+- name: my-rw-git-repo
+  type: git
+  source:
+    uri: git@github.com:ruanbekker/concourse-test.git
+    branch: basic-helloworld
+    private_key: ((publishing-outputs-private-key))
+
+- name: application-repo
+  type: git
+  source:
+    uri: https://github.com/ruanbekker/flask-remote-ip
+
+jobs:
+- name: hello-world-job
+  public: true
+  plan:
+  - get: my-git-repo
+    trigger: true
+  - task: task_print-hello-world
+    file: my-git-repo/ci/task-hello-world.yml
+
+- name: linux-task
+  public: true
+  plan:
+  - get: my-git-repo
+  - get: application-repo
+    trigger: true
+  - task: task_run-linux-task
+    file: my-git-repo/ci/task-run-uname.yml
+
+- name: job-pass-files
+  public: true
+  plan:
+  - get: my-git-repo
+    trigger: true
+  - task: create-some-files
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      inputs:
+      - name: my-git-repo
+      outputs:
+      - name: some-files
+
+      run:
+        path: my-git-repo/ci/create_some_files.sh
+
+  - task: show-some-files
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      inputs:
+      - name: my-git-repo
+      - name: some-files
+
+      run:
+        path: my-git-repo/ci/show_files.sh
+
+- name: job-bump-date
+  serial: true
+  plan:
+  - get: my-git-repo
+  - get: my-rw-git-repo
+  - task: bump-timestamp-file
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: { repository: rbekker87/build-tools }
+
+      inputs:
+        - name: my-git-repo
+        - name: my-rw-git-repo
+      outputs:
+        - name: updated-gist
+      run:
+        path: my-git-repo/ci/bump-timestamp-file.sh
+
+  - put: my-rw-git-repo
+    params:
+      repository: updated-gist
+
+- name: job-show-date
+  plan:
+  - get: my-git-repo
+  - get: my-rw-git-repo
+    passed: [job-bump-date]
+    trigger: true
+  - task: show-date
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+      inputs:
+        - name: my-rw-git-repo
+      run:
+        path: cat
+        args: [my-rw-git-repo/bumpme]

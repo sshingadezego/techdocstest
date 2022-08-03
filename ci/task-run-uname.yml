@@ -1,0 +1,14 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: alpine, tag: edge}
+
+inputs:
+- name: my-git-repo
+- name: application-repo
+  path: app/flask/project_files/flask-remote-ip
+
+run:
+  path: my-git-repo/ci/task_run_tests.sh
