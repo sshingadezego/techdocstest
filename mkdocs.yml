@@ -1,7 +1,7 @@
 site_name: 'component'
 
 nav:
-  - Home: OWNERS.md
+  - Home: index.md
 
 plugins:
   - techdocs-core
