@@ -3,8 +3,15 @@ resources:
 - name: my-git-repo
   type: git
   source:
-    uri: https://github.com/ruanbekker/concourse-test
-    branch: basic-helloworld
+    uri: https://github.com/sshingadezego/techdocstest
+    branch: main
+- name: doc-image
+  type: registry-image
+  icon: docker
+  source:
+    repository: techdocs
+    username: sshingade
+    password: Docker*2002
 
 - name: my-rw-git-repo
   type: git
@@ -111,3 +118,26 @@ jobs:
       run:
         path: cat
         args: [my-rw-git-repo/bumpme]
+
+- name: build-and-push
+  plan:
+  - get: my-git-repo
+  - task: build-image
+    privileged: true # oci-build-task must run in a privileged container
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+      inputs:
+        - name: my-git-repo
+      outputs:
+        - name: image
+      params:
+        CONTEXT: my-git-repo
+      run: # binary used to build the image
+        path: build
+  - put: doc-image
+    params:
+      image: image/image.tar
